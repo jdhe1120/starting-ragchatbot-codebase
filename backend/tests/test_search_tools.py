@@ -32,7 +32,7 @@ class TestCourseSearchToolExecute(unittest.TestCase):
         self.assertIn("[AI Course - Lesson 1]", result)
         self.assertIn("RAG stands for Retrieval-Augmented Generation.", result)
         self.assertEqual(len(tool.last_sources), 1)
-        self.assertIn('<a href=', tool.last_sources[0])
+        self.assertIn("<a href=", tool.last_sources[0])
         self.assertIn("AI Course - Lesson 1", tool.last_sources[0])
 
     def test_execute_returns_error_when_search_errors(self):
@@ -46,7 +46,9 @@ class TestCourseSearchToolExecute(unittest.TestCase):
 
     def test_execute_returns_no_results_message_with_course_filter(self):
         store = self._make_store()
-        store.search.return_value = SearchResults(documents=[], metadata=[], distances=[])
+        store.search.return_value = SearchResults(
+            documents=[], metadata=[], distances=[]
+        )
 
         tool = CourseSearchTool(store)
         result = tool.execute(query="what is RAG", course_name="MCP")
@@ -55,7 +57,9 @@ class TestCourseSearchToolExecute(unittest.TestCase):
 
     def test_execute_no_course_filter_no_results(self):
         store = self._make_store()
-        store.search.return_value = SearchResults(documents=[], metadata=[], distances=[])
+        store.search.return_value = SearchResults(
+            documents=[], metadata=[], distances=[]
+        )
 
         tool = CourseSearchTool(store)
         result = tool.execute(query="anything")
@@ -80,12 +84,16 @@ class TestCourseSearchToolExecute(unittest.TestCase):
 
     def test_execute_passes_all_params_to_store(self):
         store = self._make_store()
-        store.search.return_value = SearchResults(documents=[], metadata=[], distances=[])
+        store.search.return_value = SearchResults(
+            documents=[], metadata=[], distances=[]
+        )
 
         tool = CourseSearchTool(store)
         tool.execute(query="agents", course_name="MCP", lesson_number=3)
 
-        store.search.assert_called_once_with(query="agents", course_name="MCP", lesson_number=3)
+        store.search.assert_called_once_with(
+            query="agents", course_name="MCP", lesson_number=3
+        )
 
 
 class TestCourseOutlineToolExecute(unittest.TestCase):
@@ -98,10 +106,12 @@ class TestCourseOutlineToolExecute(unittest.TestCase):
                 {
                     "title": "Full Course Title",
                     "course_link": "https://example.com",
-                    "lessons_json": json.dumps([
-                        {"lesson_number": 0, "lesson_title": "Intro"},
-                        {"lesson_number": 1, "lesson_title": "Setup"},
-                    ]),
+                    "lessons_json": json.dumps(
+                        [
+                            {"lesson_number": 0, "lesson_title": "Intro"},
+                            {"lesson_number": 1, "lesson_title": "Setup"},
+                        ]
+                    ),
                 }
             ]
         store.course_catalog.get.return_value = {"metadatas": catalog_metadatas}
@@ -120,21 +130,29 @@ class TestCourseOutlineToolExecute(unittest.TestCase):
 
     def test_outline_lessons_sorted_by_number(self):
         store = self._make_store(
-            catalog_metadatas=[{
-                "title": "My Course",
-                "course_link": "",
-                "lessons_json": json.dumps([
-                    {"lesson_number": 3, "lesson_title": "Advanced"},
-                    {"lesson_number": 1, "lesson_title": "Basics"},
-                    {"lesson_number": 2, "lesson_title": "Intermediate"},
-                ]),
-            }]
+            catalog_metadatas=[
+                {
+                    "title": "My Course",
+                    "course_link": "",
+                    "lessons_json": json.dumps(
+                        [
+                            {"lesson_number": 3, "lesson_title": "Advanced"},
+                            {"lesson_number": 1, "lesson_title": "Basics"},
+                            {"lesson_number": 2, "lesson_title": "Intermediate"},
+                        ]
+                    ),
+                }
+            ]
         )
         tool = CourseOutlineTool(store)
         result = tool.execute(course_name="My Course")
 
         lines = result.splitlines()
-        lesson_lines = [l for l in lines if l.strip().startswith("Lesson ") and ":" in l and "total" not in l]
+        lesson_lines = [
+            l
+            for l in lines
+            if l.strip().startswith("Lesson ") and ":" in l and "total" not in l
+        ]
         self.assertEqual(lesson_lines[0], "  Lesson 1: Basics")
         self.assertEqual(lesson_lines[1], "  Lesson 2: Intermediate")
         self.assertEqual(lesson_lines[2], "  Lesson 3: Advanced")
