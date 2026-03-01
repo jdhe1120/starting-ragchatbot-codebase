@@ -101,9 +101,18 @@ class CourseSearchTool(Tool):
             header += "]"
             
             # Track source for the UI
-            source = course_title
+            label = course_title
             if lesson_num is not None:
-                source += f" - Lesson {lesson_num}"
+                label += f" - Lesson {lesson_num}"
+
+            if lesson_num is not None:
+                url = self.store.get_lesson_link(course_title, lesson_num)
+                if url:
+                    source = f'<a href="{url}" target="_blank" rel="noopener noreferrer">{label}</a>'
+                else:
+                    source = label
+            else:
+                source = label
             sources.append(source)
             
             formatted.append(f"{header}\n{doc}")
@@ -112,6 +121,69 @@ class CourseSearchTool(Tool):
         self.last_sources = sources
         
         return "\n\n".join(formatted)
+
+class CourseOutlineTool(Tool):
+    """Tool for retrieving the full ordered lesson outline of a course"""
+
+    def __init__(self, vector_store: VectorStore):
+        self.vector_store = vector_store
+
+    def get_tool_definition(self) -> Dict[str, Any]:
+        return {
+            "name": "get_course_outline",
+            "description": "Get the complete outline of a course: its title, link, and full ordered list of lessons with their numbers and titles. Use this for outline, structure, overview, or list of lessons questions about a course.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "course_name": {
+                        "type": "string",
+                        "description": "The course title to look up. Partial or fuzzy names are supported."
+                    }
+                },
+                "required": ["course_name"]
+            }
+        }
+
+    def execute(self, **kwargs) -> str:
+        import json
+        course_name = kwargs.get("course_name", "")
+        if not course_name:
+            return "Error: course_name is required."
+
+        try:
+            resolved_title = self.vector_store._resolve_course_name(course_name)
+        except Exception:
+            return f"Could not find a course matching '{course_name}'."
+
+        if resolved_title is None:
+            return f"Could not find a course matching '{course_name}'."
+
+        result = self.vector_store.course_catalog.get(
+            ids=[resolved_title],
+            include=["metadatas"]
+        )
+        if not result["metadatas"]:
+            return f"No metadata found for course '{resolved_title}'."
+
+        meta = result["metadatas"][0]
+        title = meta.get("title", resolved_title)
+        course_link = meta.get("course_link", "")
+        lessons_json = meta.get("lessons_json", "[]")
+
+        lessons = json.loads(lessons_json)
+        lessons_sorted = sorted(lessons, key=lambda l: l.get("lesson_number", 0))
+
+        lines = [f"Course: {title}"]
+        if course_link:
+            lines.append(f"Link: {course_link}")
+        lines.append(f"Lessons ({len(lessons_sorted)} total):")
+        for lesson in lessons_sorted:
+            num = lesson.get("lesson_number", "?")
+            lesson_title = lesson.get("lesson_title", "Untitled")
+            lines.append(f"  Lesson {num}: {lesson_title}")
+
+        return "\n".join(lines)
+
 
 class ToolManager:
     """Manages available tools for the AI"""
