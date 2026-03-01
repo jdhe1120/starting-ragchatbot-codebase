@@ -28,8 +28,16 @@ def _make_config():
 @patch("rag_system.VectorStore")
 class TestRAGSystemQuery(unittest.TestCase):
 
-    def _make_rag(self, MockVectorStore, MockDocProcessor, MockAIGen,
-                  MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool):
+    def _make_rag(
+        self,
+        MockVectorStore,
+        MockDocProcessor,
+        MockAIGen,
+        MockSessionMgr,
+        MockToolMgr,
+        MockSearchTool,
+        MockOutlineTool,
+    ):
         from rag_system import RAGSystem
 
         mock_ai = MagicMock()
@@ -38,7 +46,9 @@ class TestRAGSystemQuery(unittest.TestCase):
 
         mock_tool_mgr = MagicMock()
         mock_tool_mgr.get_last_sources.return_value = ["Source A"]
-        mock_tool_mgr.get_tool_definitions.return_value = [{"name": "search_course_content"}]
+        mock_tool_mgr.get_tool_definitions.return_value = [
+            {"name": "search_course_content"}
+        ]
         MockToolMgr.return_value = mock_tool_mgr
 
         mock_session = MagicMock()
@@ -49,37 +59,72 @@ class TestRAGSystemQuery(unittest.TestCase):
         return rag, mock_ai, mock_tool_mgr, mock_session
 
     def test_query_returns_response_and_sources(
-        self, MockVectorStore, MockDocProcessor, MockAIGen,
-        MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+        self,
+        MockVectorStore,
+        MockDocProcessor,
+        MockAIGen,
+        MockSessionMgr,
+        MockToolMgr,
+        MockSearchTool,
+        MockOutlineTool,
     ):
         rag, mock_ai, mock_tool_mgr, _ = self._make_rag(
-            MockVectorStore, MockDocProcessor, MockAIGen,
-            MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+            MockVectorStore,
+            MockDocProcessor,
+            MockAIGen,
+            MockSessionMgr,
+            MockToolMgr,
+            MockSearchTool,
+            MockOutlineTool,
         )
         response, sources = rag.query("what is RAG?")
         self.assertEqual(response, "AI answer")
         self.assertEqual(sources, ["Source A"])
 
     def test_query_wraps_user_query_in_prompt(
-        self, MockVectorStore, MockDocProcessor, MockAIGen,
-        MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+        self,
+        MockVectorStore,
+        MockDocProcessor,
+        MockAIGen,
+        MockSessionMgr,
+        MockToolMgr,
+        MockSearchTool,
+        MockOutlineTool,
     ):
         rag, mock_ai, _, _ = self._make_rag(
-            MockVectorStore, MockDocProcessor, MockAIGen,
-            MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+            MockVectorStore,
+            MockDocProcessor,
+            MockAIGen,
+            MockSessionMgr,
+            MockToolMgr,
+            MockSearchTool,
+            MockOutlineTool,
         )
         rag.query("my user question")
         call_kwargs = mock_ai.generate_response.call_args[1]
-        self.assertIn("Answer this question about course materials:", call_kwargs["query"])
+        self.assertIn(
+            "Answer this question about course materials:", call_kwargs["query"]
+        )
         self.assertIn("my user question", call_kwargs["query"])
 
     def test_query_passes_tools_to_generator(
-        self, MockVectorStore, MockDocProcessor, MockAIGen,
-        MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+        self,
+        MockVectorStore,
+        MockDocProcessor,
+        MockAIGen,
+        MockSessionMgr,
+        MockToolMgr,
+        MockSearchTool,
+        MockOutlineTool,
     ):
         rag, mock_ai, mock_tool_mgr, _ = self._make_rag(
-            MockVectorStore, MockDocProcessor, MockAIGen,
-            MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+            MockVectorStore,
+            MockDocProcessor,
+            MockAIGen,
+            MockSessionMgr,
+            MockToolMgr,
+            MockSearchTool,
+            MockOutlineTool,
         )
         rag.query("question")
         call_kwargs = mock_ai.generate_response.call_args[1]
@@ -87,46 +132,92 @@ class TestRAGSystemQuery(unittest.TestCase):
         self.assertIs(call_kwargs["tool_manager"], mock_tool_mgr)
 
     def test_query_resets_sources_after_retrieval(
-        self, MockVectorStore, MockDocProcessor, MockAIGen,
-        MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+        self,
+        MockVectorStore,
+        MockDocProcessor,
+        MockAIGen,
+        MockSessionMgr,
+        MockToolMgr,
+        MockSearchTool,
+        MockOutlineTool,
     ):
         rag, _, mock_tool_mgr, _ = self._make_rag(
-            MockVectorStore, MockDocProcessor, MockAIGen,
-            MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+            MockVectorStore,
+            MockDocProcessor,
+            MockAIGen,
+            MockSessionMgr,
+            MockToolMgr,
+            MockSearchTool,
+            MockOutlineTool,
         )
         rag.query("question")
         mock_tool_mgr.reset_sources.assert_called_once()
 
     def test_query_with_session_updates_history(
-        self, MockVectorStore, MockDocProcessor, MockAIGen,
-        MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+        self,
+        MockVectorStore,
+        MockDocProcessor,
+        MockAIGen,
+        MockSessionMgr,
+        MockToolMgr,
+        MockSearchTool,
+        MockOutlineTool,
     ):
         rag, _, _, mock_session = self._make_rag(
-            MockVectorStore, MockDocProcessor, MockAIGen,
-            MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+            MockVectorStore,
+            MockDocProcessor,
+            MockAIGen,
+            MockSessionMgr,
+            MockToolMgr,
+            MockSearchTool,
+            MockOutlineTool,
         )
         rag.query("question", session_id="session_1")
         mock_session.get_conversation_history.assert_called_once_with("session_1")
-        mock_session.add_exchange.assert_called_once_with("session_1", "question", "AI answer")
+        mock_session.add_exchange.assert_called_once_with(
+            "session_1", "question", "AI answer"
+        )
 
     def test_query_without_session_no_history_lookup(
-        self, MockVectorStore, MockDocProcessor, MockAIGen,
-        MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+        self,
+        MockVectorStore,
+        MockDocProcessor,
+        MockAIGen,
+        MockSessionMgr,
+        MockToolMgr,
+        MockSearchTool,
+        MockOutlineTool,
     ):
         rag, _, _, mock_session = self._make_rag(
-            MockVectorStore, MockDocProcessor, MockAIGen,
-            MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+            MockVectorStore,
+            MockDocProcessor,
+            MockAIGen,
+            MockSessionMgr,
+            MockToolMgr,
+            MockSearchTool,
+            MockOutlineTool,
         )
         rag.query("question")
         mock_session.get_conversation_history.assert_not_called()
 
     def test_query_sources_empty_when_no_tool_used(
-        self, MockVectorStore, MockDocProcessor, MockAIGen,
-        MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+        self,
+        MockVectorStore,
+        MockDocProcessor,
+        MockAIGen,
+        MockSessionMgr,
+        MockToolMgr,
+        MockSearchTool,
+        MockOutlineTool,
     ):
         rag, mock_ai, mock_tool_mgr, _ = self._make_rag(
-            MockVectorStore, MockDocProcessor, MockAIGen,
-            MockSessionMgr, MockToolMgr, MockSearchTool, MockOutlineTool
+            MockVectorStore,
+            MockDocProcessor,
+            MockAIGen,
+            MockSessionMgr,
+            MockToolMgr,
+            MockSearchTool,
+            MockOutlineTool,
         )
         mock_tool_mgr.get_last_sources.return_value = []
         _, sources = rag.query("question")

@@ -18,7 +18,9 @@ def _make_text_response(text="hello", stop_reason="end_turn"):
     return response
 
 
-def _make_tool_use_response(tool_id="tu_1", tool_name="search_course_content", tool_input=None):
+def _make_tool_use_response(
+    tool_id="tu_1", tool_name="search_course_content", tool_input=None
+):
     if tool_input is None:
         tool_input = {"query": "RAG"}
     response = MagicMock()
@@ -59,7 +61,13 @@ class TestAIGeneratorGenerateResponse(unittest.TestCase):
         gen, mock_client = self._make_generator(mock_anthropic_cls)
         mock_client.messages.create.return_value = _make_text_response("answer")
 
-        tools = [{"name": "search_course_content", "description": "search", "input_schema": {}}]
+        tools = [
+            {
+                "name": "search_course_content",
+                "description": "search",
+                "input_schema": {},
+            }
+        ]
         gen.generate_response("question", tools=tools)
 
         call_kwargs = mock_client.messages.create.call_args[1]
@@ -70,7 +78,9 @@ class TestAIGeneratorGenerateResponse(unittest.TestCase):
         gen, mock_client = self._make_generator(mock_anthropic_cls)
 
         first_response = _make_tool_use_response(
-            tool_id="tu_1", tool_name="search_course_content", tool_input={"query": "RAG"}
+            tool_id="tu_1",
+            tool_name="search_course_content",
+            tool_input={"query": "RAG"},
         )
         second_response = _make_text_response("Here is the answer")
         mock_client.messages.create.side_effect = [first_response, second_response]
@@ -78,11 +88,21 @@ class TestAIGeneratorGenerateResponse(unittest.TestCase):
         tool_manager = MagicMock()
         tool_manager.execute_tool.return_value = "[Course A]\nsome content"
 
-        tools = [{"name": "search_course_content", "description": "search", "input_schema": {}}]
-        result = gen.generate_response("question", tools=tools, tool_manager=tool_manager)
+        tools = [
+            {
+                "name": "search_course_content",
+                "description": "search",
+                "input_schema": {},
+            }
+        ]
+        result = gen.generate_response(
+            "question", tools=tools, tool_manager=tool_manager
+        )
 
         # execute_tool called with tool name and input kwargs
-        tool_manager.execute_tool.assert_called_once_with("search_course_content", query="RAG")
+        tool_manager.execute_tool.assert_called_once_with(
+            "search_course_content", query="RAG"
+        )
 
         # Second call (round 2 inside the loop) should still have tools
         second_call_kwargs = mock_client.messages.create.call_args_list[1][1]
@@ -104,14 +124,18 @@ class TestAIGeneratorGenerateResponse(unittest.TestCase):
         gen, mock_client = self._make_generator(mock_anthropic_cls)
         mock_client.messages.create.return_value = _make_text_response("answer")
 
-        gen.generate_response("question", conversation_history="User: hi\nAssistant: hello")
+        gen.generate_response(
+            "question", conversation_history="User: hi\nAssistant: hello"
+        )
 
         call_kwargs = mock_client.messages.create.call_args[1]
         system = call_kwargs["system"]
         self.assertIn(AIGenerator.SYSTEM_PROMPT, system)
         self.assertIn("User: hi\nAssistant: hello", system)
 
-    def test_generate_response_no_history_uses_base_prompt_only(self, mock_anthropic_cls):
+    def test_generate_response_no_history_uses_base_prompt_only(
+        self, mock_anthropic_cls
+    ):
         gen, mock_client = self._make_generator(mock_anthropic_cls)
         mock_client.messages.create.return_value = _make_text_response("answer")
 
@@ -124,19 +148,35 @@ class TestAIGeneratorGenerateResponse(unittest.TestCase):
         gen, mock_client = self._make_generator(mock_anthropic_cls)
 
         tool_use_response_1 = _make_tool_use_response(
-            tool_id="tu_1", tool_name="get_course_outline", tool_input={"course_name": "Course X"}
+            tool_id="tu_1",
+            tool_name="get_course_outline",
+            tool_input={"course_name": "Course X"},
         )
         tool_use_response_2 = _make_tool_use_response(
-            tool_id="tu_2", tool_name="search_course_content", tool_input={"query": "lesson topic"}
+            tool_id="tu_2",
+            tool_name="search_course_content",
+            tool_input={"query": "lesson topic"},
         )
         text_response = _make_text_response("Final synthesized answer")
-        mock_client.messages.create.side_effect = [tool_use_response_1, tool_use_response_2, text_response]
+        mock_client.messages.create.side_effect = [
+            tool_use_response_1,
+            tool_use_response_2,
+            text_response,
+        ]
 
         tool_manager = MagicMock()
         tool_manager.execute_tool.side_effect = ["outline result", "search result"]
 
-        tools = [{"name": "search_course_content", "description": "search", "input_schema": {}}]
-        result = gen.generate_response("find related courses", tools=tools, tool_manager=tool_manager)
+        tools = [
+            {
+                "name": "search_course_content",
+                "description": "search",
+                "input_schema": {},
+            }
+        ]
+        result = gen.generate_response(
+            "find related courses", tools=tools, tool_manager=tool_manager
+        )
 
         self.assertEqual(mock_client.messages.create.call_count, 3)
 
@@ -156,7 +196,9 @@ class TestAIGeneratorGenerateResponse(unittest.TestCase):
         gen, mock_client = self._make_generator(mock_anthropic_cls)
 
         tool_use_response = _make_tool_use_response(
-            tool_id="tu_1", tool_name="search_course_content", tool_input={"query": "RAG"}
+            tool_id="tu_1",
+            tool_name="search_course_content",
+            tool_input={"query": "RAG"},
         )
         text_response = _make_text_response("Sorry, could not retrieve results")
         mock_client.messages.create.side_effect = [tool_use_response, text_response]
@@ -164,8 +206,16 @@ class TestAIGeneratorGenerateResponse(unittest.TestCase):
         tool_manager = MagicMock()
         tool_manager.execute_tool.side_effect = Exception("DB unavailable")
 
-        tools = [{"name": "search_course_content", "description": "search", "input_schema": {}}]
-        result = gen.generate_response("question", tools=tools, tool_manager=tool_manager)
+        tools = [
+            {
+                "name": "search_course_content",
+                "description": "search",
+                "input_schema": {},
+            }
+        ]
+        result = gen.generate_response(
+            "question", tools=tools, tool_manager=tool_manager
+        )
 
         self.assertEqual(mock_client.messages.create.call_count, 2)
 
